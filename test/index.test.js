@@ -2,6 +2,7 @@ import buildPlugin from '../dist';
 import fs from 'fs';
 import path from 'path';
 import babel from '@babel/core';
+import { throws } from 'assert';
 const plugin = buildPlugin();
 
 it("does not import functions if all keys are regular keys", () => {
@@ -87,3 +88,16 @@ it("works with template literals", () => {
   const { code } = babel.transform(input, { plugins: [plugin] });
   expect(code).toBe(output);
 });
+
+it("works with literal transform", () => {
+  let input = fs.readFileSync(path.join('test', 'fixtures', 'default', 'hyphenation', 'input.js'), 'UTF8');
+  let output = fs.readFileSync(path.join('test', 'fixtures', 'default', 'hyphenation', 'output.js'), 'UTF8');
+  const { code } = babel.transform(input, { plugins: [
+    [
+      plugin, {
+        literalTransform: (v) => v.toUpperCase()
+      }
+    ]
+  ] });
+  expect(code).toBe(output);
+})

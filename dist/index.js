@@ -1,7 +1,7 @@
 import { declare } from "@babel/helper-plugin-utils";
 import { isIdentifier, isObjectExpression, isObjectProperty, isStringLiteral, } from "@babel/types";
-import { parse } from '@formatjs/icu-messageformat-parser';
-import { isArgumentElement, isDateElement, isDateTimeSkeleton, isLiteralElement, isNumberElement, isNumberSkeleton, isPoundElement, isSelectElement, isTagElement, isTimeElement, } from '@formatjs/icu-messageformat-parser/types.js';
+import { parse } from "@formatjs/icu-messageformat-parser";
+import { isArgumentElement, isDateElement, isDateTimeSkeleton, isLiteralElement, isNumberElement, isNumberSkeleton, isPoundElement, isSelectElement, isTagElement, isTimeElement, } from "@formatjs/icu-messageformat-parser/types.js";
 const HELPERS_MAP = {
     0: "__interpolate",
     1: "__interpolate",
@@ -14,12 +14,12 @@ const HELPERS_MAP = {
     8: "__interpolate", // This should not happen
 };
 const PLURAL_ABBREVIATIONS = {
-    zero: 'z',
-    one: 'o',
-    two: 't',
-    few: 'f',
-    many: 'm',
-    other: 'h'
+    zero: "z",
+    one: "o",
+    two: "t",
+    few: "f",
+    many: "m",
+    other: "h",
 };
 export default function build(runtimeImportPath = "precompile-intl-runtime") {
     return declare(({ types: t, assertVersion }, options) => {
@@ -43,11 +43,11 @@ export default function build(runtimeImportPath = "precompile-intl-runtime") {
         }
         function buildCallExpression(entry) {
             if (isLiteralElement(entry))
-                throw new Error('Literal elements not supported!');
+                throw new Error("Literal elements not supported!");
             if (isTagElement(entry))
-                throw new Error('Tag elements not supported!');
+                throw new Error("Tag elements not supported!");
             if (isPoundElement(entry))
-                throw new Error('Pound elements not supported!');
+                throw new Error("Pound elements not supported!");
             if (isNumberElement(entry)) {
                 return buildNumberCallExpression(entry);
             }
@@ -81,27 +81,31 @@ export default function build(runtimeImportPath = "precompile-intl-runtime") {
                     // Any unit but those will throw a runtime error, but we could error or at least show a warning to the user
                     // when invalid. P.e. a common mistake could be to use `unit: 'km'` (wrong) instead of the correct (`unit: 'kilometer'`).
                     let keys = Object.keys(entry.style.parsedOptions);
-                    let options = t.objectExpression(keys.map(key => {
+                    let options = t.objectExpression(keys.map((key) => {
                         if (!isNumberSkeleton(entry.style))
-                            throw new Error('The entry should have had a number skeleton');
+                            throw new Error("The entry should have had a number skeleton");
                         let val = entry.style.parsedOptions[key];
-                        return t.objectProperty(t.identifier(key), typeof val === "number" ? t.numericLiteral(val) : t.stringLiteral(val));
+                        return t.objectProperty(t.identifier(key), typeof val === "number"
+                            ? t.numericLiteral(val)
+                            : t.stringLiteral(val));
                     }));
                     callArgs.push(options);
                 }
             }
-            else if (typeof entry.style === 'string') {
+            else if (typeof entry.style === "string") {
                 callArgs.push(t.stringLiteral(entry.style));
             }
-            return t.callExpression(t.identifier('__number'), callArgs);
+            return t.callExpression(t.identifier("__number"), callArgs);
         }
         function buildDateOrTimeCallExpression(entry) {
             let fnName = HELPERS_MAP[entry.type];
             usedHelpers.add(fnName);
-            let callArgs = [t.identifier(entry.value)];
+            let callArgs = [
+                t.identifier(entry.value),
+            ];
             currentFunctionParams.add(entry.value);
             if (isDateTimeSkeleton(entry.style))
-                throw new Error('Datetime skeletons not supported yet');
+                throw new Error("Datetime skeletons not supported yet");
             if (entry.style) {
                 callArgs.push(t.stringLiteral(entry.style));
             }
@@ -111,20 +115,25 @@ export default function build(runtimeImportPath = "precompile-intl-runtime") {
             let fnName = HELPERS_MAP[entry.type];
             usedHelpers.add(fnName);
             currentFunctionParams.add(entry.value);
-            return t.callExpression(t.identifier(fnName), [t.identifier(entry.value)]);
+            return t.callExpression(t.identifier(fnName), [
+                t.identifier(entry.value),
+            ]);
         }
         function buildPluralCallExpression(entry) {
             let fnName = HELPERS_MAP[entry.type];
             pluralsStack.push(entry);
-            usedHelpers.add(entry.offset !== 0 ? '__offsetPlural' : '__plural');
-            let options = t.objectExpression(Object.keys(entry.options).map(key => {
+            usedHelpers.add(entry.offset !== 0 ? "__offsetPlural" : "__plural");
+            let options = t.objectExpression(Object.keys(entry.options).map((key) => {
                 let objValueAST = entry.options[key].value;
                 let objValue;
                 if (objValueAST.length === 1 && objValueAST[0].type === 0) {
                     objValue = t.stringLiteral(objValueAST[0].value);
                 }
                 else {
-                    objValue = objValueAST.length === 1 ? buildCallExpression(objValueAST[0]) : buildTemplateLiteral(objValueAST);
+                    objValue =
+                        objValueAST.length === 1
+                            ? buildCallExpression(objValueAST[0])
+                            : buildTemplateLiteral(objValueAST);
                 }
                 let normalizedKey = normalizePluralKey(key);
                 return t.objectProperty(typeof normalizedKey === "number"
@@ -134,30 +143,45 @@ export default function build(runtimeImportPath = "precompile-intl-runtime") {
             pluralsStack.pop();
             currentFunctionParams.add(entry.value);
             if (entry.offset !== 0) {
-                return t.callExpression(t.identifier("__offsetPlural"), [t.identifier(entry.value), t.numericLiteral(entry.offset), options]);
+                return t.callExpression(t.identifier("__offsetPlural"), [
+                    t.identifier(entry.value),
+                    t.numericLiteral(entry.offset),
+                    options,
+                ]);
             }
             else {
-                return t.callExpression(t.identifier(fnName), [t.identifier(entry.value), options]);
+                return t.callExpression(t.identifier(fnName), [
+                    t.identifier(entry.value),
+                    options,
+                ]);
             }
         }
         function buildSelectCallExpression(entry) {
             let fnName = HELPERS_MAP[entry.type];
             usedHelpers.add(fnName);
             entry.options;
-            let options = t.objectExpression(Object.keys(entry.options).map(key => {
+            let options = t.objectExpression(Object.keys(entry.options).map((key) => {
                 let objValueAST = entry.options[key].value;
                 let objValue;
                 if (objValueAST.length === 1 && objValueAST[0].type === 0) {
                     objValue = t.stringLiteral(objValueAST[0].value);
                 }
                 else {
-                    objValue = objValueAST.length === 1 ? buildCallExpression(objValueAST[0]) : buildTemplateLiteral(objValueAST);
+                    objValue =
+                        objValueAST.length === 1
+                            ? buildCallExpression(objValueAST[0])
+                            : buildTemplateLiteral(objValueAST);
                 }
                 let normalizedKey = normalizeKey(key);
-                return t.objectProperty(typeof normalizedKey === "number" ? t.numericLiteral(normalizedKey) : t.identifier(normalizedKey), objValue);
+                return t.objectProperty(typeof normalizedKey === "number"
+                    ? t.numericLiteral(normalizedKey)
+                    : t.identifier(normalizedKey), objValue);
             }));
             currentFunctionParams.add(entry.value);
-            return t.callExpression(t.identifier(fnName), [t.identifier(entry.value), options]);
+            return t.callExpression(t.identifier(fnName), [
+                t.identifier(entry.value),
+                options,
+            ]);
         }
         function buildTemplateLiteral(ast) {
             let quasis = [];
@@ -175,7 +199,7 @@ export default function build(runtimeImportPath = "precompile-intl-runtime") {
                         expressions.push(buildCallExpression(entry));
                         currentFunctionParams.add(entry.value);
                         if (i === 0)
-                            quasis.push(t.templateElement({ cooked: '', raw: '' }, false));
+                            quasis.push(t.templateElement({ cooked: "", raw: "" }, false));
                         break;
                     case 2: // Number format
                         expressions.push(buildCallExpression(entry));
@@ -204,47 +228,74 @@ export default function build(runtimeImportPath = "precompile-intl-runtime") {
                             expressions.push(t.identifier(lastPlural.value));
                         }
                         if (i === 0)
-                            quasis.push(t.templateElement({ cooked: '', raw: '' }, false));
+                            quasis.push(t.templateElement({ cooked: "", raw: "" }, false));
                         break;
                     default:
                         debugger;
                 }
                 if (i === ast.length - 1 && entry.type !== 0) {
-                    quasis.push(t.templateElement({ cooked: '', raw: '' }, true));
+                    quasis.push(t.templateElement({ cooked: "", raw: "" }, true));
                 }
             }
             if (quasis.length === expressions.length && quasis.length === 0) {
-                return t.stringLiteral(''); // If there's no data, return an empty string. No need to use backquotes.
+                return t.stringLiteral(""); // If there's no data, return an empty string. No need to use backquotes.
             }
             // If the number of quasis must be one more than the number of expressions (because expressions go
             // in between). If that's not the case it means we need an empty string as first quasis.
             while (quasis.length <= expressions.length) {
-                quasis.unshift(t.templateElement({ cooked: '', raw: '' }, false));
+                quasis.unshift(t.templateElement({ cooked: "", raw: "" }, false));
             }
             return t.templateLiteral(quasis, expressions);
+        }
+        function applyLiteralTransform(ast) {
+            if (!options.literalTransform)
+                return;
+            for (const el of ast) {
+                switch (el.type) {
+                    case 0: // literal
+                        el.value = options.literalTransform(el.value);
+                        continue;
+                    case 5: // select
+                    case 6: // plural
+                        for (const { value } of Object.values(el.options))
+                            applyLiteralTransform(value);
+                        continue;
+                    case 8: // tag
+                        applyLiteralTransform(el.children);
+                        continue;
+                    default:
+                        continue;
+                }
+            }
         }
         function buildFunction(ast) {
             currentFunctionParams = new Set();
             pluralsStack = [];
-            let body = ast.length === 1 ? buildCallExpression(ast[0]) : buildTemplateLiteral(ast);
+            let body = ast.length === 1
+                ? buildCallExpression(ast[0])
+                : buildTemplateLiteral(ast);
             if (Array.from(currentFunctionParams).length === 0) {
                 return body;
             }
-            return t.arrowFunctionExpression(Array.from(currentFunctionParams).sort().map(p => t.identifier(p)), body);
+            return t.arrowFunctionExpression(Array.from(currentFunctionParams)
+                .sort()
+                .map((p) => t.identifier(p)), body);
         }
         function flattenObjectProperties(object, propsArray, currentPrefix) {
-            return object.properties.forEach(op => {
+            return object.properties.forEach((op) => {
                 if (!isObjectProperty(op))
-                    throw new Error('Exported objects can only contain regular properties');
+                    throw new Error("Exported objects can only contain regular properties");
                 if (!isStringLiteral(op.key) && !isIdentifier(op.key))
-                    throw new Error('Object keys for translations can only contain strings or identifiers');
+                    throw new Error("Object keys for translations can only contain strings or identifiers");
                 let name = isStringLiteral(op.key) ? op.key.value : op.key.name;
-                name = currentPrefix ? currentPrefix + '.' + name : name;
+                name = currentPrefix ? currentPrefix + "." + name : name;
                 if (t.isObjectExpression(op.value)) {
                     flattenObjectProperties(op.value, propsArray, name);
                 }
                 else {
-                    let key = (isStringLiteral(op.key) || !!currentPrefix) ? t.stringLiteral(name) : t.identifier(name);
+                    let key = isStringLiteral(op.key) || !!currentPrefix
+                        ? t.stringLiteral(name)
+                        : t.identifier(name);
                     propsArray.push([key, op.value]);
                 }
             });
@@ -258,31 +309,43 @@ export default function build(runtimeImportPath = "precompile-intl-runtime") {
                     },
                     exit(path) {
                         if (usedHelpers.size > 0) {
-                            let importDeclaration = t.importDeclaration(Array.from(usedHelpers).sort().map(name => t.importSpecifier(t.identifier(name), t.identifier(name))), t.stringLiteral(runtimeImportPath));
+                            let importDeclaration = t.importDeclaration(Array.from(usedHelpers)
+                                .sort()
+                                .map((name) => t.importSpecifier(t.identifier(name), t.identifier(name))), t.stringLiteral(runtimeImportPath));
                             path.unshiftContainer("body", importDeclaration);
                         }
-                    }
+                    },
                 },
                 ObjectProperty({ node }) {
                     if (t.isStringLiteral(node.value)) {
                         let icuAST = parse(node.value.value, { ignoreTag: true });
-                        if (icuAST.length === 1 && icuAST[0].type === 0)
+                        applyLiteralTransform(icuAST);
+                        if (icuAST.length === 1 && icuAST[0].type === 0) {
+                            node.value.value = icuAST[0].value;
                             return;
+                        }
                         node.value = buildFunction(icuAST);
                     }
-                    else if (t.isTemplateLiteral(node.value) && node.value.quasis.length == 1) {
+                    else if (t.isTemplateLiteral(node.value) &&
+                        node.value.quasis.length == 1) {
                         const quasis_value = node.value.quasis[0].value;
                         let icuAST = parse(quasis_value.raw, { ignoreTag: true });
-                        if (icuAST.length === 1 && icuAST[0].type === 0)
+                        applyLiteralTransform(icuAST);
+                        if (icuAST.length === 1 && icuAST[0].type === 0) {
+                            node.value.quasis[0].value.raw = icuAST[0].value;
                             return;
+                        }
                         node.value = buildFunction(icuAST);
                     }
                 },
                 VariableDeclarator({ node }) {
                     if (t.isStringLiteral(node.init)) {
                         let icuAST = parse(node.init.value);
-                        if (icuAST.length === 1 && icuAST[0].type === 0)
+                        applyLiteralTransform(icuAST);
+                        if (icuAST.length === 1 && icuAST[0].type === 0) {
+                            node.init.value = icuAST[0].value;
                             return;
+                        }
                         node.init = buildFunction(icuAST);
                     }
                 },
@@ -290,20 +353,21 @@ export default function build(runtimeImportPath = "precompile-intl-runtime") {
                     // let properties: (Identifier | StringLiteral)[] = [];
                     let properties = [];
                     if (!isObjectExpression(node.declaration))
-                        throw new Error('The default export must be an object');
+                        throw new Error("The default export must be an object");
                     flattenObjectProperties(node.declaration, properties);
                     node.declaration = t.objectExpression(properties.map(([k, v]) => {
                         t.objectProperty(k, v);
-                        if (t.isIdentifier(k) && t.isIdentifier(v) && k.name === v.name) {
+                        if (t.isIdentifier(k) &&
+                            t.isIdentifier(v) &&
+                            k.name === v.name) {
                             return t.objectProperty(k, v, false, true);
                         }
                         else {
                             return t.objectProperty(k, v);
                         }
                     }));
-                }
-            }
+                },
+            },
         };
     });
 }
-;

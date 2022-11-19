@@ -2,10 +2,10 @@
   "name": "babel-plugin-precompile-intl",
   "version": "0.5.2",
   "description": "Compile translations in ICU message format to invocable functions at build time",
-  "repository": "https://github.com/cibernox/babel-plugin-precompile-intl",
+  "repository": "https://github.com/gigahatch/babel-plugin-precompile-intl",
   "author": {
-    "name": "Miguel Camba",
-    "email": "miguel.camba@gmail.com"
+    "name": "Gigahatch",
+    "email": "info@gigahatch.ch"
   },
   "license": "MIT",
   "scripts": {
@@ -22,7 +22,8 @@
   "dependencies": {
     "@babel/core": "^7.0.0-0",
     "@babel/helper-plugin-utils": "^7.17.0",
-    "@formatjs/icu-messageformat-parser": "^2.1.2"
+    "@formatjs/icu-messageformat-parser": "^2.1.2",
+    "hyphen": "^1.6.4"
   },
   "keywords": [
     "babel-plugin",
